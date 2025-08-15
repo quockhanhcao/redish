@@ -1,4 +1,4 @@
-package main
+package threadpool
 
 import (
 	"errors"
@@ -36,43 +36,28 @@ func NewPool(numWorkers int) *Pool {
 	}
 }
 
-func (p *Pool) Start() {
-	for i := 0; i < len(p.workers); i++ {
-		p.workers[i] = NewWorker(i+1, p.jobQueue)
-		p.workers[i].Start()
-	}
-}
-
 func (p *Pool) AddJob(job Job) {
 	p.jobQueue <- job
-}
-
-func NewWorker(id int, jobQueue chan Job) *Worker {
-	return &Worker{
-		id:       id,
-		jobQueue: jobQueue,
-	}
 }
 
 func (w *Worker) Start() {
 	go func() {
 		for job := range w.jobQueue {
-			fmt.Printf("Processing job from %s by worker %d\n", job.conn.RemoteAddr(), w.id)
+			fmt.Printf("Processing job from %s by worker %d", job.conn.RemoteAddr(), w.id)
 			handleConnection(job.conn)
 		}
 	}()
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:3000")
+	listener, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
-		fmt.Println("Failed to bind to port 3000")
+		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
 	defer listener.Close()
-	fmt.Println("Server is listening on port 3000")
+	fmt.Println("Server is listening on port 6379")
 	threadPool := NewPool(2)
-	threadPool.Start()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -87,7 +72,7 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	for {
 		buf := make([]byte, 1024)
-		_, err := conn.Read(buf)
+		n, err := conn.Read(buf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("Connection closed by client")
@@ -96,7 +81,7 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error reading from connection: ", err.Error())
 			return
 		}
-		// fmt.Println("Received data: ", string(buf[:n]))
-		conn.Write([]byte("+PONG\r\n"))
+		fmt.Println("Received data: ", string(buf[:n]))
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n+PONG\r\n"))
 	}
 }
