@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"io"
 	"net"
 	"os"
@@ -57,7 +57,7 @@ func NewWorker(id int, jobQueue chan Job) *Worker {
 func (w *Worker) Start() {
 	go func() {
 		for job := range w.jobQueue {
-			fmt.Printf("Processing job from %s by worker %d\n", job.conn.RemoteAddr(), w.id)
+			log.Printf("Processing job from %s by worker %d\n", job.conn.RemoteAddr(), w.id)
 			handleConnection(job.conn)
 		}
 	}()
@@ -66,17 +66,17 @@ func (w *Worker) Start() {
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:3000")
 	if err != nil {
-		fmt.Println("Failed to bind to port 3000")
+		log.Println("Failed to bind to port 3000")
 		os.Exit(1)
 	}
 	defer listener.Close()
-	fmt.Println("Server is listening on port 3000")
+	log.Println("Server is listening on port 3000")
 	threadPool := NewPool(2)
 	threadPool.Start()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
+			log.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
 		threadPool.AddJob(Job{conn})
@@ -90,13 +90,13 @@ func handleConnection(conn net.Conn) {
 		_, err := conn.Read(buf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				fmt.Println("Connection closed by client")
+				log.Println("Connection closed by client")
 				return
 			}
-			fmt.Println("Error reading from connection: ", err.Error())
+			log.Println("Error reading from connection: ", err.Error())
 			return
 		}
-		// fmt.Println("Received data: ", string(buf[:n]))
+		// log.Println("Received data: ", string(buf[:n]))
 		conn.Write([]byte("+PONG\r\n"))
 	}
 }
