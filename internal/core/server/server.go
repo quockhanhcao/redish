@@ -79,12 +79,18 @@ func StartServer() {
 				// parse the data here
 				_, err := readCommand(event.FileDescriptor)
 				if err != nil {
-					if errors.Is(err, io.EOF) {
+					if errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET) {
+						log.Print("client disconnected, closing fd ", event.FileDescriptor)
 						syscall.Close(event.FileDescriptor)
 					}
+					continue
 				}
 
 				// execute the command here
+				// if cmd.Cmd == "PING" {
+				// syscall.Write(event.FileDescriptor, []byte("+PONG\r\n"))
+				// }
+
 			}
 		}
 	}
@@ -103,5 +109,8 @@ func readCommand(fd int) (command.Command, error) {
 		// return nil, io.EOF
 		return command.Command{}, io.EOF
 	}
-	return command.ParseCommand(buffer[:readBytes])
+
+	syscall.Write(fd, []byte("+PONG\r\n"))
+	// return command.ParseCommand(buffer[:readBytes])
+	return command.Command{}, nil
 }
