@@ -2,10 +2,12 @@ package main
 
 import (
 	"errors"
-	"log"
 	"io"
+	"log"
 	"net"
-	"os"
+	// "os"
+
+	"github.com/quockhanhcao/redish/internal/core/server"
 )
 
 // thread pool
@@ -64,23 +66,24 @@ func (w *Worker) Start() {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "0.0.0.0:3000")
-	if err != nil {
-		log.Println("Failed to bind to port 3000")
-		os.Exit(1)
-	}
-	defer listener.Close()
-	log.Println("Server is listening on port 3000")
-	threadPool := NewPool(2)
-	threadPool.Start()
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
-		}
-		threadPool.AddJob(Job{conn})
-	}
+	// listener, err := net.Listen("tcp", "0.0.0.0:3000")
+	// if err != nil {
+	// 	log.Println("Failed to bind to port 3000")
+	// 	os.Exit(1)
+	// }
+	// defer listener.Close()
+	// log.Println("Server is listening on port 3000")
+	// threadPool := NewPool(2)
+	// threadPool.Start()
+	// for {
+	// 	conn, err := listener.Accept()
+	// 	if err != nil {
+	// 		log.Println("Error accepting connection: ", err.Error())
+	// 		os.Exit(1)
+	// 	}
+	// 	threadPool.AddJob(Job{conn})
+	// }
+	server.StartServer()
 }
 
 func handleConnection(conn net.Conn) {

@@ -2,19 +2,19 @@ package iomultiplexing
 
 import "syscall"
 
-func (e *Event) toEpollEvent() syscall.EpollEvent {
-	op := syscall.EPOLLIN
+func (e Event) toEpollEvent() syscall.EpollEvent {
+	var event uint32 = syscall.EPOLLIN
 	if e.Operation == OperationWrite {
-		op = syscall.EPOLLOUT
+		event = syscall.EPOLLOUT
 	}
 	return syscall.EpollEvent{
-		Events: uint32(op),
 		Fd:     int32(e.FileDescriptor),
+		Events: uint32(event),
 	}
 }
 
 func toGenericEvent(event syscall.EpollEvent) Event {
-	var operation = OperationRead
+	var operation Operation = OperationRead
 	if event.Events == syscall.EPOLLOUT {
 		operation = OperationWrite
 	}

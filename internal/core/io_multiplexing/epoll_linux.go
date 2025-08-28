@@ -1,3 +1,4 @@
+//go:build linux
 package iomultiplexing
 
 import (
@@ -35,7 +36,7 @@ func (e *Epoll) Wait() ([]Event, error) {
 	return e.genericEvents[:n], nil
 }
 
-func CreateIOMultiplexer() (IOMultiplexer, error) {
+func CreateIOMultiplexer() (*Epoll, error) {
 	epollFD, err := syscall.EpollCreate1(0)
 	if err != nil {
 		return nil, err

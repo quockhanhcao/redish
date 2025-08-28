@@ -5,13 +5,15 @@ const (
 	OperationWrite = 2
 )
 
+type Operation uint32
+
 type Event struct {
 	FileDescriptor int
-	Operation      int
+	Operation      Operation
 }
 
 type IOMultiplexer interface {
-	Monitor(Event) error
+	Monitor(event Event) error
 	Wait() ([]Event, error)
 	Close() error
 }
