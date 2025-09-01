@@ -3,49 +3,78 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 )
 
-const CRLF = "\r\n"
+const (
+	CRLF             = "\r\n"
+	NULL_BULK_STRING = "$-1\r\n"
+)
 
-func DecodeCommand(data []byte) (Command, error) {
+func DecodeCommand(data []byte) (interface{}, int, error) {
 	switch data[0] {
 	case '+':
 		return decodeSimpleString(data)
-	case '*':
+	case ':':
+		return decodeInteger(data)
+	case '$':
 		return decodeBulkString(data)
 	default:
-		return Command{}, fmt.Errorf("unknown command type: %c", data[0])
+		return nil, 0, fmt.Errorf("unknown command type: %c", data[0])
 	}
 }
 
-func decodeSimpleString(data []byte) (Command, error) {
+// Eg: +OK\r\n
+func decodeSimpleString(data []byte) (string, int, error) {
 	idx := bytes.Index(data, []byte(CRLF))
 	if idx == -1 {
-		return Command{}, fmt.Errorf("invalid simple string: no CRLF found")
+		return "", 0, fmt.Errorf("invalid simple string: no CRLF found")
 	}
-	return Command{Cmd: string(data[1:idx])}, nil
+	return string(data[1:idx]), idx + len(CRLF), nil
 }
 
-func decodeBulkString(data []byte) (Command, error) {
+// Eg: :1000\r\n, :-1000\r\n, :+1000\r\n
+func decodeInteger(data []byte) (value int64, pos int, err error) {
+	idx := bytes.Index(data, []byte(CRLF))
+	if idx == -1 {
+		return 0, 0, fmt.Errorf("invalid integer: no CRLF found")
+	}
+	sign := 1
+	pos = 1
+	if data[1] == '-' {
+		sign = -1
+		pos++
+	} else if data[1] == '+' {
+		pos++
+	}
+	value = int64(0)
+	for i := pos; i < idx; i++ {
+		value = value*10 + int64(data[i]-'0')
+	}
+	return int64(sign) * value, idx + len(CRLF), nil
+}
+
+// Eg: $6\r\nfoobar\r\n, $0\r\n\r\n, $-1\r\n
+func decodeBulkString(data []byte) (string, int, error) {
 	firstCRLF := bytes.Index(data, []byte(CRLF))
 	if firstCRLF == -1 {
-		return Command{}, fmt.Errorf("invalid bulk string: no CRLF found after array length")
+		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after array length")
 	}
-	numberOfElements, err := strconv.ParseInt(string(data[1:firstCRLF]), 10, 16)
-	if err != nil {
-		return Command{}, fmt.Errorf("invalid bulk string: cannot parse number of elements: %w", err)
+	if bytes.Equal(data[1:firstCRLF], []byte(NULL_BULK_STRING)) {
+		return "", firstCRLF + len(CRLF), nil
 	}
-	fmt.Println("Number of elements:", numberOfElements)
-	command := data[1:firstCRLF]
-	args := data[firstCRLF+2:]
-	argParts := bytes.Split(args, []byte(CRLF))
-	var commandArgs = make([]string, 0, len(argParts))
-	for _, arg := range argParts {
-		if len(arg) == 0 {
-			continue
-		}
-		commandArgs = append(commandArgs, string(arg))
+	stringLength := 0
+	pos := 1
+	for i := 1; i < firstCRLF; i++ {
+		stringLength = stringLength*10 + int(data[i]-'0')
+		pos++
 	}
-	return Command{Cmd: string(command), Args: commandArgs}, nil
+	secondCRLF := bytes.Index(data[firstCRLF+len(CRLF):], []byte(CRLF))
+	if secondCRLF == -1 {
+		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after string data")
+	}
+	str := string(data[pos+len(CRLF) : secondCRLF])
+	if len(str) != stringLength {
+		return "", 0, fmt.Errorf("invalid bulk string: expected length %d, got %d", stringLength, len(str))
+	}
+	return str, secondCRLF + len(CRLF), nil
 }

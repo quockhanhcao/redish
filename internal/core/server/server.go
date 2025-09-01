@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -86,12 +85,6 @@ func StartServer() {
 					}
 					continue
 				}
-
-				// execute the command here
-				// if cmd.Cmd == "PING" {
-				// syscall.Write(event.FileDescriptor, []byte("+PONG\r\n"))
-				// }
-
 			}
 		}
 	}
@@ -110,15 +103,11 @@ func readCommand(fd int) (command.Command, error) {
 		// return nil, io.EOF
 		return command.Command{}, io.EOF
 	}
-	syscall.Write(fd, []byte("+PONG\r\n"))
-	_, err = command.DecodeCommand(buffer[:readBytes])
+	// _, err = command.p.DecodeCommand(buffer[:readBytes])
+	_, _, err = command.DecodeCommand(buffer[:readBytes])
 	if err != nil {
 		log.Print("error parsing command: ", err.Error())
 		return command.Command{}, err
 	}
-	// fmt.Println(cmd.Cmd)
-	// fmt.Println(cmd.Args)
-	fmt.Println("//////////////////////////////////")
-	// return command.ParseCommand(buffer[:readBytes])
 	return command.Command{}, nil
 }
