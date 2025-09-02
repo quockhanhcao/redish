@@ -93,24 +93,28 @@ func decodeBulkString(data []byte) (string, int, error) {
 	if firstCRLF == -1 {
 		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after array length")
 	}
-	if bytes.Equal(data[1:firstCRLF], []byte(NULL_BULK_STRING)) {
+	if bytes.Equal(data[:firstCRLF + len(CRLF)], []byte(NULL_BULK_STRING)) {
 		return "", firstCRLF + len(CRLF), nil
 	}
-	stringLength := 0
+	strLen := 0
 	pos := 1
 	for i := 1; i < firstCRLF; i++ {
-		stringLength = stringLength*10 + int(data[i]-'0')
+		if !unicode.IsDigit(rune(data[i])) {
+			return "", 0, fmt.Errorf("invalid bulk string length: non-digit character found")
+		}
+		strLen = strLen*10 + int(data[i]-'0')
 		pos++
 	}
-	secondCRLF := bytes.Index(data[firstCRLF+len(CRLF):], []byte(CRLF))
+	pos += len(CRLF)
+	secondCRLF := bytes.Index(data[pos:], []byte(CRLF))
 	if secondCRLF == -1 {
 		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after string data")
 	}
-	str := string(data[pos+len(CRLF) : secondCRLF])
-	if len(str) != stringLength {
-		return "", 0, fmt.Errorf("invalid bulk string: expected length %d, got %d", stringLength, len(str))
+	str := string(data[pos : pos+secondCRLF])
+	if len(str) != strLen {
+		return "", 0, fmt.Errorf("invalid bulk string: expected length %d, got %d", strLen, len(str))
 	}
-	return str, secondCRLF + len(CRLF), nil
+	return str, pos + strLen + len(CRLF), nil
 }
 
 // *2\r\n$5\r\nhello\r\n$5\r\nworld\r\n
@@ -126,7 +130,7 @@ func decodeArray(data []byte) ([]interface{}, int, error) {
 	pos := crlfIdx + len(CRLF)
 	args := make([]interface{}, 0, numArgs)
 	for i := 0; i < numArgs; i++ {
-		arg, readBytes, err := decodeCommand(data[crlfIdx+len(CRLF):])
+		arg, readBytes, err := decodeCommand(data[pos:])
 		if err != nil {
 			return nil, 0, err
 		}
