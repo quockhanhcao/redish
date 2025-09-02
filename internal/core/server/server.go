@@ -103,11 +103,10 @@ func readCommand(fd int) (command.Command, error) {
 		// return nil, io.EOF
 		return command.Command{}, io.EOF
 	}
-	// _, err = command.p.DecodeCommand(buffer[:readBytes])
-	_, _, err = command.DecodeCommand(buffer[:readBytes])
+	cmd, err := command.ParseCommand(buffer[:readBytes])
 	if err != nil {
 		log.Print("error parsing command: ", err.Error())
 		return command.Command{}, err
 	}
-	return command.Command{}, nil
+	return cmd, nil
 }

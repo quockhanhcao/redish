@@ -3,6 +3,8 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"strings"
+	"unicode"
 )
 
 const (
@@ -10,7 +12,34 @@ const (
 	NULL_BULK_STRING = "$-1\r\n"
 )
 
-func DecodeCommand(data []byte) (interface{}, int, error) {
+func ParseCommand(data []byte) (Command, error) {
+	args, _, err := decodeCommand(data)
+	if err != nil {
+		return Command{}, err
+	}
+	argList, ok := args.([]interface{})
+	if !ok {
+		return Command{}, fmt.Errorf("invalid command format")
+	}
+	cmd, ok := argList[0].(string)
+	if !ok {
+		return Command{}, fmt.Errorf("command name must be a string")
+	}
+	strArgs := make([]string, 0, len(argList)-1)
+	for _, arg := range argList[1:] {
+		strArg, ok := arg.(string)
+		if !ok {
+			return Command{}, fmt.Errorf("command arguments must be strings")
+		}
+		strArgs = append(strArgs, strArg)
+	}
+	return Command{
+		Cmd:  strings.ToUpper(cmd),
+		Args: strArgs,
+	}, nil
+}
+
+func decodeCommand(data []byte) (interface{}, int, error) {
 	switch data[0] {
 	case '+':
 		return decodeSimpleString(data)
@@ -18,6 +47,8 @@ func DecodeCommand(data []byte) (interface{}, int, error) {
 		return decodeInteger(data)
 	case '$':
 		return decodeBulkString(data)
+	case '*':
+		return decodeArray(data)
 	default:
 		return nil, 0, fmt.Errorf("unknown command type: %c", data[0])
 	}
@@ -33,24 +64,27 @@ func decodeSimpleString(data []byte) (string, int, error) {
 }
 
 // Eg: :1000\r\n, :-1000\r\n, :+1000\r\n
-func decodeInteger(data []byte) (value int64, pos int, err error) {
-	idx := bytes.Index(data, []byte(CRLF))
-	if idx == -1 {
+func decodeInteger(data []byte) (int64, int, error) {
+	crlfIdx := bytes.Index(data, []byte(CRLF))
+	if crlfIdx == -1 {
 		return 0, 0, fmt.Errorf("invalid integer: no CRLF found")
 	}
 	sign := 1
-	pos = 1
+	pos := 1
 	if data[1] == '-' {
 		sign = -1
 		pos++
 	} else if data[1] == '+' {
 		pos++
 	}
-	value = int64(0)
-	for i := pos; i < idx; i++ {
+	value := int64(0)
+	for i := pos; i < crlfIdx; i++ {
+		if !unicode.IsDigit(rune(data[i])) {
+			return 0, 0, fmt.Errorf("invalid integer: non-digit character found")
+		}
 		value = value*10 + int64(data[i]-'0')
 	}
-	return int64(sign) * value, idx + len(CRLF), nil
+	return int64(sign) * value, crlfIdx + len(CRLF), nil
 }
 
 // Eg: $6\r\nfoobar\r\n, $0\r\n\r\n, $-1\r\n
@@ -77,4 +111,27 @@ func decodeBulkString(data []byte) (string, int, error) {
 		return "", 0, fmt.Errorf("invalid bulk string: expected length %d, got %d", stringLength, len(str))
 	}
 	return str, secondCRLF + len(CRLF), nil
+}
+
+// *2\r\n$5\r\nhello\r\n$5\r\nworld\r\n
+func decodeArray(data []byte) ([]interface{}, int, error) {
+	crlfIdx := bytes.Index(data, []byte(CRLF))
+	if crlfIdx == -1 {
+		return nil, 0, fmt.Errorf("invalid array: no CRLF found after array length")
+	}
+	numArgs := 0
+	for i := 1; i < crlfIdx; i++ {
+		numArgs = numArgs*10 + int(data[i]-'0')
+	}
+	pos := crlfIdx + len(CRLF)
+	args := make([]interface{}, 0, numArgs)
+	for i := 0; i < numArgs; i++ {
+		arg, readBytes, err := decodeCommand(data[crlfIdx+len(CRLF):])
+		if err != nil {
+			return nil, 0, err
+		}
+		pos += readBytes
+		args = append(args, arg)
+	}
+	return args, pos, nil
 }
