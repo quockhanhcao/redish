@@ -1,10 +1,12 @@
-package command
+package resp_parser
 
 import (
 	"bytes"
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/quockhanhcao/redish/internal/core/command"
 )
 
 const (
@@ -12,28 +14,28 @@ const (
 	NULL_BULK_STRING = "$-1\r\n"
 )
 
-func ParseCommand(data []byte) (Command, error) {
+func ParseCommand(data []byte) (command.Command, error) {
 	args, _, err := decodeCommand(data)
 	if err != nil {
-		return Command{}, err
+		return command.Command{}, err
 	}
 	argList, ok := args.([]interface{})
 	if !ok {
-		return Command{}, fmt.Errorf("invalid command format")
+		return command.Command{}, fmt.Errorf("invalid command format")
 	}
 	cmd, ok := argList[0].(string)
 	if !ok {
-		return Command{}, fmt.Errorf("command name must be a string")
+		return command.Command{}, fmt.Errorf("command name must be a string")
 	}
 	strArgs := make([]string, 0, len(argList)-1)
 	for _, arg := range argList[1:] {
 		strArg, ok := arg.(string)
 		if !ok {
-			return Command{}, fmt.Errorf("command arguments must be strings")
+			return command.Command{}, fmt.Errorf("command arguments must be strings")
 		}
 		strArgs = append(strArgs, strArg)
 	}
-	return Command{
+	return command.Command{
 		Cmd:  strings.ToUpper(cmd),
 		Args: strArgs,
 	}, nil
@@ -52,6 +54,21 @@ func decodeCommand(data []byte) (interface{}, int, error) {
 	default:
 		return nil, 0, fmt.Errorf("unknown command type: %c", data[0])
 	}
+}
+
+func readLen(data []byte) (int, int, error) {
+	crlfIdx := bytes.Index(data, []byte(CRLF))
+	if crlfIdx == -1 {
+		return 0, 0, fmt.Errorf("invalid length: no CRLF found")
+	}
+	length := 0
+	for i := 1; i < crlfIdx; i++ {
+		if !unicode.IsDigit(rune(data[i])) {
+			return 0, 0, fmt.Errorf("invalid length: non-digit character found")
+		}
+		length = length*10 + int(data[i]-'0')
+	}
+	return length, crlfIdx + len(CRLF), nil
 }
 
 // Eg: +OK\r\n
@@ -89,23 +106,15 @@ func decodeInteger(data []byte) (int64, int, error) {
 
 // Eg: $6\r\nfoobar\r\n, $0\r\n\r\n, $-1\r\n
 func decodeBulkString(data []byte) (string, int, error) {
-	firstCRLF := bytes.Index(data, []byte(CRLF))
-	if firstCRLF == -1 {
-		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after array length")
+	// null bulk string
+	crlfIdx := bytes.Index(data, []byte(CRLF))
+	if bytes.Equal(data[:crlfIdx+len(CRLF)], []byte(NULL_BULK_STRING)) {
+		return "", crlfIdx + len(CRLF), nil
 	}
-	if bytes.Equal(data[:firstCRLF + len(CRLF)], []byte(NULL_BULK_STRING)) {
-		return "", firstCRLF + len(CRLF), nil
+	strLen, pos, err := readLen(data)
+	if err != nil {
+		return "", 0, err
 	}
-	strLen := 0
-	pos := 1
-	for i := 1; i < firstCRLF; i++ {
-		if !unicode.IsDigit(rune(data[i])) {
-			return "", 0, fmt.Errorf("invalid bulk string length: non-digit character found")
-		}
-		strLen = strLen*10 + int(data[i]-'0')
-		pos++
-	}
-	pos += len(CRLF)
 	secondCRLF := bytes.Index(data[pos:], []byte(CRLF))
 	if secondCRLF == -1 {
 		return "", 0, fmt.Errorf("invalid bulk string: no CRLF found after string data")
@@ -119,15 +128,10 @@ func decodeBulkString(data []byte) (string, int, error) {
 
 // *2\r\n$5\r\nhello\r\n$5\r\nworld\r\n
 func decodeArray(data []byte) ([]interface{}, int, error) {
-	crlfIdx := bytes.Index(data, []byte(CRLF))
-	if crlfIdx == -1 {
-		return nil, 0, fmt.Errorf("invalid array: no CRLF found after array length")
+	numArgs, pos, err := readLen(data)
+	if err != nil {
+		return nil, 0, err
 	}
-	numArgs := 0
-	for i := 1; i < crlfIdx; i++ {
-		numArgs = numArgs*10 + int(data[i]-'0')
-	}
-	pos := crlfIdx + len(CRLF)
 	args := make([]interface{}, 0, numArgs)
 	for i := 0; i < numArgs; i++ {
 		arg, readBytes, err := decodeCommand(data[pos:])

@@ -11,6 +11,7 @@ import (
 	"github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/config"
 	iomultiplexing "github.com/quockhanhcao/redish/internal/core/io_multiplexing"
+	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 )
 
 func StartServer() {
@@ -77,7 +78,7 @@ func StartServer() {
 				}
 			} else {
 				// parse the data here
-				_, err := readCommand(event.FileDescriptor)
+				cmd, err := readCommand(event.FileDescriptor)
 				if err != nil {
 					if errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET) {
 						log.Print("client disconnected, closing fd ", event.FileDescriptor)
@@ -85,6 +86,9 @@ func StartServer() {
 					}
 					continue
 				}
+				// execute the command here
+				var response []byte
+				syscall.Write(event.FileDescriptor, response)
 			}
 		}
 	}
@@ -103,7 +107,7 @@ func readCommand(fd int) (command.Command, error) {
 		// return nil, io.EOF
 		return command.Command{}, io.EOF
 	}
-	cmd, err := command.ParseCommand(buffer[:readBytes])
+	cmd, err := resp_parser.ParseCommand(buffer[:readBytes])
 	if err != nil {
 		log.Print("error parsing command: ", err.Error())
 		return command.Command{}, err

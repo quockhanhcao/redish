@@ -1,4 +1,4 @@
-package command
+package resp_parser
 
 import (
 	"fmt"
@@ -77,7 +77,7 @@ func TestDecodeBulkString(t *testing.T) {
 	}{
 		{data: []byte("$3\r\nfoo"), expectedResult: response{value: "", pos: 0, err: fmt.Errorf("invalid bulk string: no CRLF found after string data")}},
 		{data: []byte("$3\r\nfo\r\n"), expectedResult: response{value: "", pos: 0, err: fmt.Errorf("invalid bulk string: expected length 3, got 2")}},
-		{data: []byte("$abc\r\nfoobar\r\n"), expectedResult: response{value: "", pos: 0, err: fmt.Errorf("invalid bulk string length: non-digit character found")}},
+		{data: []byte("$abc\r\nfoobar\r\n"), expectedResult: response{value: "", pos: 0, err: fmt.Errorf("invalid length: non-digit character found")}},
 		{data: []byte("$6\r\nfoobar\r\nabc"), expectedResult: response{value: "foobar", pos: 12, err: nil}},
 		{data: []byte("$0\r\n\r\n"), expectedResult: response{value: "", pos: 6, err: nil}},
 		{data: []byte("$-1\r\n"), expectedResult: response{value: "", pos: 5, err: nil}},
@@ -105,7 +105,22 @@ func TestDecodeArray(t *testing.T) {
 			expectedResult: response{
 				value: []interface{}{"foo", "bar"},
 				pos:   22, err: nil,
-			}},
+			},
+		},
+		{
+			data: []byte("*3\r\n:1\r\n:2\r\n:3\r\n"),
+			expectedResult: response{
+				value: []interface{}{int64(1), int64(2), int64(3)},
+				pos:   16, err: nil,
+			},
+		},
+		{
+			data: []byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"),
+			expectedResult: response{
+				value: []interface{}{"hello", "world"},
+				pos:   26, err: nil,
+			},
+		},
 	}
 	for _, test := range tests {
 		value, pos, err := decodeArray(test.data)
