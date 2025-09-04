@@ -3,7 +3,7 @@ package resp_parser
 import "fmt"
 
 func EncodeSimpleString(s string) []byte {
-	return []byte("+" + s + "\r\n")
+	return []byte(fmt.Sprintf("+%s\r\n", s))
 }
 
 func EncodeBulkString(s string) []byte {
@@ -13,6 +13,6 @@ func EncodeBulkString(s string) []byte {
 	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s))
 }
 
-func EncodeError(error string) []byte {
-	return []byte("-" + error + "\r\n")
+func EncodeError(err error) []byte {
+	return []byte(fmt.Sprintf("-%s\r\n", err.Error()))
 }

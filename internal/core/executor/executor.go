@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"syscall"
 
 	"github.com/quockhanhcao/redish/internal/core/command"
@@ -16,7 +17,7 @@ func ExecuteCommand(cmd command.Command, fd int) {
 		} else if len(cmd.Args) == 1 {
 			response = resp_parser.EncodeBulkString(cmd.Args[0])
 		} else {
-			response = resp_parser.EncodeError("(error) wrong number of arguments for 'ping' command")
+			response = resp_parser.EncodeError(errors.New("(error) wrong number of arguments for 'ping' command"))
 		}
 	}
 	syscall.Write(fd, response)
