@@ -10,6 +10,7 @@ import (
 
 	"github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/config"
+	"github.com/quockhanhcao/redish/internal/core/executor"
 	iomultiplexing "github.com/quockhanhcao/redish/internal/core/io_multiplexing"
 	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 )
@@ -87,8 +88,7 @@ func StartServer() {
 					continue
 				}
 				// execute the command here
-				var response []byte
-				syscall.Write(event.FileDescriptor, response)
+				executor.ExecuteCommand(cmd, event.FileDescriptor)
 			}
 		}
 	}
