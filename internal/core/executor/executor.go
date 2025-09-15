@@ -8,7 +8,7 @@ import (
 	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 )
 
-func ExecuteCommand(cmd command.Command, fd int) {
+func ExecuteCommand(cmd *command.Command, fd int) error {
 	var response []byte
 	switch cmd.Cmd {
 	case "PING":
@@ -20,5 +20,6 @@ func ExecuteCommand(cmd command.Command, fd int) {
 			response = resp_parser.EncodeError(errors.New("(error) wrong number of arguments for 'ping' command"))
 		}
 	}
-	syscall.Write(fd, response)
+	_, err := syscall.Write(fd, response)
+	return err
 }

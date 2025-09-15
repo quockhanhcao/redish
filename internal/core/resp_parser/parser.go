@@ -14,28 +14,28 @@ const (
 	NULL_BULK_STRING = "$-1\r\n"
 )
 
-func ParseCommand(data []byte) (command.Command, error) {
+func ParseCommand(data []byte) (*command.Command, error) {
 	args, _, err := decodeCommand(data)
 	if err != nil {
-		return command.Command{}, err
+		return nil, err
 	}
 	argList, ok := args.([]interface{})
 	if !ok {
-		return command.Command{}, fmt.Errorf("invalid command format")
+		return nil, fmt.Errorf("invalid command format")
 	}
 	cmd, ok := argList[0].(string)
 	if !ok {
-		return command.Command{}, fmt.Errorf("command name must be a string")
+		return nil, fmt.Errorf("command name must be a string")
 	}
 	strArgs := make([]string, 0, len(argList)-1)
 	for _, arg := range argList[1:] {
 		strArg, ok := arg.(string)
 		if !ok {
-			return command.Command{}, fmt.Errorf("command arguments must be strings")
+			return nil, fmt.Errorf("command arguments must be strings")
 		}
 		strArgs = append(strArgs, strArg)
 	}
-	return command.Command{
+	return &command.Command{
 		Cmd:  strings.ToUpper(cmd),
 		Args: strArgs,
 	}, nil

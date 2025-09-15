@@ -84,6 +84,7 @@ func StartServer() {
 					if errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET) {
 						log.Print("client disconnected, closing fd ", event.FileDescriptor)
 						syscall.Close(event.FileDescriptor)
+						continue
 					}
 					continue
 				}
@@ -94,23 +95,18 @@ func StartServer() {
 	}
 }
 
-func readCommand(fd int) (command.Command, error) {
+func readCommand(fd int) (*command.Command, error) {
 	// redis commands are small
 	// use small buffer
 	var buffer = make([]byte, 512)
 	readBytes, err := syscall.Read(fd, buffer)
 	if err != nil {
 		log.Print("error reading from fd: ", err.Error())
-		return command.Command{}, err
+		return nil, err
 	}
 	if readBytes == 0 {
 		// return nil, io.EOF
-		return command.Command{}, io.EOF
+		return nil, io.EOF
 	}
-	cmd, err := resp_parser.ParseCommand(buffer[:readBytes])
-	if err != nil {
-		log.Print("error parsing command: ", err.Error())
-		return command.Command{}, err
-	}
-	return cmd, nil
+	return resp_parser.ParseCommand(buffer[:readBytes])
 }
