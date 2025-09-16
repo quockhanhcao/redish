@@ -83,7 +83,7 @@ func main() {
 	// 	}
 	// 	threadPool.AddJob(Job{conn})
 	// }
-	server.StartServer()
+	server.RunIoMultiplexingServer()
 }
 
 func handleConnection(conn net.Conn) {

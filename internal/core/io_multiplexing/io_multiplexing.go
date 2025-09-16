@@ -1,4 +1,4 @@
-package iomultiplexing
+package io_multiplexing
 
 const (
 	OperationRead  = 1
@@ -8,8 +8,8 @@ const (
 type Operation uint32
 
 type Event struct {
-	FileDescriptor int
-	Operation      Operation
+	Fd int
+	Op Operation
 }
 
 type IOMultiplexer interface {

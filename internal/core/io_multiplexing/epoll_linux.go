@@ -1,5 +1,6 @@
 //go:build linux
-package iomultiplexing
+
+package io_multiplexing
 
 import (
 	"syscall"
@@ -15,13 +16,13 @@ type Epoll struct {
 
 // Close implements IOMultiplexer.
 func (e *Epoll) Close() error {
-	panic("unimplemented")
+	return syscall.Close(e.fd)
 }
 
 // Monitor implements IOMultiplexer.
 func (e *Epoll) Monitor(event Event) error {
 	epollEvent := event.toEpollEvent()
-	return syscall.EpollCtl(e.fd, syscall.EPOLL_CTL_ADD, event.FileDescriptor, &epollEvent)
+	return syscall.EpollCtl(e.fd, syscall.EPOLL_CTL_ADD, event.Fd, &epollEvent)
 }
 
 // Wait implements IOMultiplexer.

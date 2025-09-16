@@ -11,11 +11,11 @@ import (
 	"github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/config"
 	"github.com/quockhanhcao/redish/internal/core/executor"
-	iomultiplexing "github.com/quockhanhcao/redish/internal/core/io_multiplexing"
+	"github.com/quockhanhcao/redish/internal/core/io_multiplexing"
 	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 )
 
-func StartServer() {
+func RunIoMultiplexingServer() {
 	listener, err := net.Listen(config.PROTOCOL, config.PORT)
 	if err != nil {
 		log.Println("failed to bind to port 3000")
@@ -37,22 +37,22 @@ func StartServer() {
 	defer listenerFile.Close()
 	listenerFD := int(listenerFile.Fd())
 
-	ioMultiplexer, err := iomultiplexing.CreateIOMultiplexer()
+	ioMultiplexer, err := io_multiplexing.CreateIOMultiplexer()
 	if err != nil {
 		log.Fatal("failed to create I/O multiplexer: ", err.Error())
 		return
 	}
 	defer ioMultiplexer.Close()
 
-	err = ioMultiplexer.Monitor(iomultiplexing.Event{
-		FileDescriptor: listenerFD,
-		Operation:      iomultiplexing.OperationRead})
+	err = ioMultiplexer.Monitor(io_multiplexing.Event{
+		Fd: listenerFD,
+		Op:      io_multiplexing.OperationRead})
 	if err != nil {
 		log.Println("failed to monitor listener: ", err.Error())
 		return
 	}
 
-	var events = make([]iomultiplexing.Event, config.MAX_CONNECTIONS)
+	var events = make([]io_multiplexing.Event, config.MAX_CONNECTIONS)
 	for {
 		events, err = ioMultiplexer.Wait()
 
@@ -61,7 +61,7 @@ func StartServer() {
 			continue
 		}
 		for _, event := range events {
-			if event.FileDescriptor == listenerFD {
+			if event.Fd == listenerFD {
 				log.Printf("new client is trying to connect")
 				// set up new connection
 				connFd, _, err := syscall.Accept(listenerFD)
@@ -71,25 +71,25 @@ func StartServer() {
 				}
 				log.Printf("set up a new connection")
 				// ask epoll to monitor this connection
-				if err = ioMultiplexer.Monitor(iomultiplexing.Event{
-					FileDescriptor: connFd,
-					Operation:      iomultiplexing.OperationRead,
+				if err = ioMultiplexer.Monitor(io_multiplexing.Event{
+					Fd: connFd,
+					Op:      io_multiplexing.OperationRead,
 				}); err != nil {
 					log.Fatal(err)
 				}
 			} else {
 				// parse the data here
-				cmd, err := readCommand(event.FileDescriptor)
+				cmd, err := readCommand(event.Fd)
 				if err != nil {
 					if errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET) {
-						log.Print("client disconnected, closing fd ", event.FileDescriptor)
-						syscall.Close(event.FileDescriptor)
+						log.Print("client disconnected, closing fd ", event.Fd)
+						syscall.Close(event.Fd)
 						continue
 					}
 					continue
 				}
 				// execute the command here
-				executor.ExecuteCommand(cmd, event.FileDescriptor)
+				executor.ExecuteCommand(cmd, event.Fd)
 			}
 		}
 	}
@@ -108,5 +108,5 @@ func readCommand(fd int) (*command.Command, error) {
 		// return nil, io.EOF
 		return nil, io.EOF
 	}
-	return resp_parser.ParseCommand(buffer[:readBytes])
+	return resp_parser.ParseCmd(buffer)
 }

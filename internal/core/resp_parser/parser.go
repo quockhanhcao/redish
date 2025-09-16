@@ -14,7 +14,7 @@ const (
 	NULL_BULK_STRING = "$-1\r\n"
 )
 
-func ParseCommand(data []byte) (*command.Command, error) {
+func ParseCmd(data []byte) (*command.Command, error) {
 	args, _, err := decodeCommand(data)
 	if err != nil {
 		return nil, err
