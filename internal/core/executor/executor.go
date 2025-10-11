@@ -3,6 +3,7 @@ package executor
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/quockhanhcao/redish/internal/core"
@@ -21,6 +22,7 @@ func cmdPing(cmd *command.Command) []byte {
 	return resp_parser.Encode(errors.New("wrong number of arguments for 'ping' command"), false)
 }
 
+// set abc ex 5
 func cmdSet(cmd *command.Command) []byte {
 	if len(cmd.Args) < 2 || len(cmd.Args) == 3 || len(cmd.Args) > 4 {
 		return resp_parser.Encode(errors.New("(error) syntax error"), false)
@@ -29,7 +31,7 @@ func cmdSet(cmd *command.Command) []byte {
 		core.Dictionary.AddToSet(cmd.Args[0], cmd.Args[1], -1)
 	} else {
 		expTime, err := strconv.Atoi(cmd.Args[3])
-		if err != nil || expTime <= 0 || cmd.Args[2] != "EX" {
+		if err != nil || expTime <= 0 || strings.ToUpper(cmd.Args[2]) != "EX" {
 			return resp_parser.Encode(errors.New("(error) syntax error"), false)
 		}
 		core.Dictionary.AddToSet(cmd.Args[0], cmd.Args[1], int64(expTime))

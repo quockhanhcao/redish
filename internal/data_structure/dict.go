@@ -25,6 +25,12 @@ func (d *Dictionary) AddToSet(key, value string, exp int64) {
 }
 
 func (d *Dictionary) GetFromSet(key string) (string, bool) {
+	expireTime, ok := d.expireKeys[key]
+	if ok && time.Now().UnixMilli() > expireTime {
+		delete(d.dataStore, key)
+		delete(d.expireKeys, key)
+		return "", false
+	}
 	val, ok := d.dataStore[key]
 	return val, ok
 }
