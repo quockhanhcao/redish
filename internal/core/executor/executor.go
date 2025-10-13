@@ -2,9 +2,11 @@ package executor
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/quockhanhcao/redish/internal/core"
 	"github.com/quockhanhcao/redish/internal/core/command"
@@ -24,17 +26,18 @@ func cmdPing(cmd *command.Command) []byte {
 
 // set abc ex 5
 func cmdSet(cmd *command.Command) []byte {
+	fmt.Println("cmd.Args:", cmd.Args)
 	if len(cmd.Args) < 2 || len(cmd.Args) == 3 || len(cmd.Args) > 4 {
-		return resp_parser.Encode(errors.New("(error) syntax error"), false)
+		return resp_parser.Encode(errors.New("syntax error"), false)
 	}
 	if len(cmd.Args) == 2 {
-		core.Dictionary.AddToSet(cmd.Args[0], cmd.Args[1], -1)
+		core.Dictionary.Set(cmd.Args[0], cmd.Args[1], -1)
 	} else {
 		expTime, err := strconv.Atoi(cmd.Args[3])
 		if err != nil || expTime <= 0 || strings.ToUpper(cmd.Args[2]) != "EX" {
-			return resp_parser.Encode(errors.New("(error) syntax error"), false)
+			return resp_parser.Encode(errors.New("syntax error"), false)
 		}
-		core.Dictionary.AddToSet(cmd.Args[0], cmd.Args[1], int64(expTime))
+		core.Dictionary.Set(cmd.Args[0], cmd.Args[1], int64(expTime))
 	}
 	return []byte("+OK\r\n")
 }
@@ -43,11 +46,29 @@ func cmdGet(cmd *command.Command) []byte {
 	if len(cmd.Args) > 1 {
 		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
 	}
-	val, ok := core.Dictionary.GetFromSet(cmd.Args[0])
+	val, ok := core.Dictionary.Get(cmd.Args[0])
 	if !ok {
 		return []byte("$-1\r\n")
 	}
 	return resp_parser.Encode(val, false)
+}
+
+func cmdTTL(cmd *command.Command) []byte {
+	expireTime, expExist := core.Dictionary.GetExpiry(cmd.Args[0])
+	_, keyExist := core.Dictionary.Get(cmd.Args[0])
+	if !expExist {
+		if keyExist {
+			return resp_parser.Encode(-1, true)
+		}
+		return resp_parser.Encode(-2, true)
+	}
+	nowMs := time.Now().UnixMilli()
+	ttlMs := expireTime - nowMs
+	ttlSec := int64(ttlMs / 1000)
+	if ttlSec < 0 {
+		return resp_parser.Encode(-2, true)
+	}
+	return resp_parser.Encode(ttlSec, true)
 }
 
 func ExecuteCommand(cmd *command.Command, fd int) error {
@@ -59,6 +80,8 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdSet(cmd)
 	case "GET":
 		response = cmdGet(cmd)
+	case "TTL":
+		response = cmdTTL(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

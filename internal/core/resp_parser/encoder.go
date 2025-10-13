@@ -21,11 +21,15 @@ func Encode(value interface{}, isSimpleString bool) []byte {
 	switch v := value.(type) {
 	case string:
 		if isSimpleString {
-			return []byte(fmt.Sprintf("+%s\r\n", v))
+			return fmt.Appendf(nil, "+%s\r\n", v)
 		}
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+		return fmt.Appendf(nil, "$%d\r\n%s\r\n", len(v), v)
+	case int:
+		return fmt.Appendf(nil, ":%d\r\n", v)
+	case int64:
+		return fmt.Appendf(nil, ":%d\r\n", v)
 	case error:
-		return []byte(fmt.Sprintf("-%s\r\n", v))
+		return fmt.Appendf(nil, "-%s\r\n", v)
 	default:
 		return EncodeError(fmt.Errorf("unsupported type: %T", v))
 	}

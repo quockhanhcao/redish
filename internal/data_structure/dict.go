@@ -5,32 +5,49 @@ import (
 )
 
 type Dictionary struct {
-	dataStore  map[string]string
-	expireKeys map[string]int64
+	dataDict  map[string]string
+	expireKeyDictStore map[string]int64
+}
+
+func (d *Dictionary) GetExpireKeyDict() map[string]int64 {
+	return d.expireKeyDictStore
+}
+
+func (d *Dictionary) GetDataDict() map[string]string {
+	return d.dataDict
 }
 
 func InitSet() *Dictionary {
 	dictionary := &Dictionary{
-		dataStore:  make(map[string]string),
-		expireKeys: make(map[string]int64),
+		dataDict:  make(map[string]string),
+		expireKeyDictStore: make(map[string]int64),
 	}
 	return dictionary
 }
 
-func (d *Dictionary) AddToSet(key, value string, exp int64) {
-	d.dataStore[key] = value
-	if (exp != -1) {
-		d.expireKeys[key] = time.Now().UnixMilli() + exp * 1000
+func (d *Dictionary) Set(key, value string, exp int64) {
+	d.dataDict[key] = value
+	if exp != -1 {
+		d.expireKeyDictStore[key] = time.Now().UnixMilli() + exp*1000
 	}
 }
 
-func (d *Dictionary) GetFromSet(key string) (string, bool) {
-	expireTime, ok := d.expireKeys[key]
+func (d *Dictionary) Get(key string) (string, bool) {
+	expireTime, ok := d.expireKeyDictStore[key]
 	if ok && time.Now().UnixMilli() > expireTime {
-		delete(d.dataStore, key)
-		delete(d.expireKeys, key)
+		d.Del(key)
 		return "", false
 	}
-	val, ok := d.dataStore[key]
+	val, ok := d.dataDict[key]
 	return val, ok
+}
+
+func (d *Dictionary) GetExpiry(key string) (int64, bool) {
+	expireTime, ok := d.expireKeyDictStore[key]
+	return expireTime, ok
+}
+
+func (d *Dictionary) Del(key string) {
+	delete(d.dataDict, key)
+	delete(d.expireKeyDictStore, key)
 }

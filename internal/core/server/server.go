@@ -7,7 +7,10 @@ import (
 	"net"
 	"os"
 	"syscall"
+	"time"
 
+	"github.com/quockhanhcao/redish/internal/constant"
+	"github.com/quockhanhcao/redish/internal/core"
 	"github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/config"
 	"github.com/quockhanhcao/redish/internal/core/executor"
@@ -53,9 +56,13 @@ func RunIoMultiplexingServer() {
 	}
 
 	var events = make([]io_multiplexing.Event, config.MAX_CONNECTIONS)
+	lastActiveEviction := time.Now()
 	for {
+		if time.Now().After(lastActiveEviction.Add(constant.SamplingEvictionFrequency)) {
+			core.SamplingEviction()
+			lastActiveEviction = time.Now()
+		}
 		events, err = ioMultiplexer.Wait()
-
 		if err != nil {
 			log.Print("error waiting for events: ", err.Error())
 			continue
