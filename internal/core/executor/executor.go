@@ -2,7 +2,6 @@ package executor
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"syscall"
@@ -26,7 +25,6 @@ func cmdPing(cmd *command.Command) []byte {
 
 // set abc ex 5
 func cmdSet(cmd *command.Command) []byte {
-	fmt.Println("cmd.Args:", cmd.Args)
 	if len(cmd.Args) < 2 || len(cmd.Args) == 3 || len(cmd.Args) > 4 {
 		return resp_parser.Encode(errors.New("syntax error"), false)
 	}
@@ -71,6 +69,34 @@ func cmdTTL(cmd *command.Command) []byte {
 	return resp_parser.Encode(ttlSec, true)
 }
 
+func cmdExpire(cmd *command.Command) []byte {
+	if len(cmd.Args) != 2 {
+		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
+	}
+	_, ok := core.Dictionary.Get(cmd.Args[0])
+	if !ok {
+		return resp_parser.Encode(0, true)
+	}
+	expTime, err := strconv.Atoi(cmd.Args[1])
+	if err != nil || expTime <= 0 {
+		return resp_parser.Encode(errors.New("ERR invalid expire time"), false)
+	}
+	core.Dictionary.SetExpiry(cmd.Args[0], int64(expTime))
+	return resp_parser.Encode(1, true)
+}
+
+func cmdDel(cmd *command.Command) []byte {
+	deleted := 0
+	for _, key := range cmd.Args {
+		_, ok := core.Dictionary.Get(key)
+		if ok {
+			core.Dictionary.Del(key)
+			deleted++
+		}
+	}
+	return resp_parser.Encode(deleted, true)
+}
+
 func ExecuteCommand(cmd *command.Command, fd int) error {
 	var response []byte
 	switch cmd.Cmd {
@@ -82,6 +108,10 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdGet(cmd)
 	case "TTL":
 		response = cmdTTL(cmd)
+	case "EXPIRE":
+		response = cmdExpire(cmd)
+	case "DEL":
+		response = cmdDel(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

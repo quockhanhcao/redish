@@ -5,3 +5,6 @@
 3. git checkout 6.2
 4. make
 5. ./src/redis-cli -p 3000
+
+Benchmark command:
+./src/redis-benchmark -n 100000 -t ping_mbulk -c 200 -h localhost -p 3000

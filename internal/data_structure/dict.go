@@ -5,7 +5,7 @@ import (
 )
 
 type Dictionary struct {
-	dataDict  map[string]string
+	dataDict           map[string]string
 	expireKeyDictStore map[string]int64
 }
 
@@ -19,7 +19,7 @@ func (d *Dictionary) GetDataDict() map[string]string {
 
 func InitSet() *Dictionary {
 	dictionary := &Dictionary{
-		dataDict:  make(map[string]string),
+		dataDict:           make(map[string]string),
 		expireKeyDictStore: make(map[string]int64),
 	}
 	return dictionary
@@ -45,6 +45,10 @@ func (d *Dictionary) Get(key string) (string, bool) {
 func (d *Dictionary) GetExpiry(key string) (int64, bool) {
 	expireTime, ok := d.expireKeyDictStore[key]
 	return expireTime, ok
+}
+
+func (d *Dictionary) SetExpiry(key string, exp int64) {
+	d.expireKeyDictStore[key] = time.Now().UnixMilli() + exp*1000
 }
 
 func (d *Dictionary) Del(key string) {
