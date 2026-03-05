@@ -2,19 +2,21 @@ package resp_parser
 
 import "fmt"
 
-func EncodeSimpleString(s string) []byte {
-	return []byte(fmt.Sprintf("+%s\r\n", s))
-}
-
-func EncodeBulkString(s string) []byte {
-	if s == "" {
-		return []byte("$0\r\n\r\n")
+func encodeStringArray(value []string) []byte {
+	length := len(value)
+	res := fmt.Appendf(nil, "*%d\r\n", length)
+	for i := range value {
+		res = fmt.Appendf(res, "$%d\r\n%s\r\n", len(value[i]), value[i])
 	}
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s))
+	return res
 }
 
-func EncodeError(err error) []byte {
+func encodeError(err error) []byte {
 	return []byte(fmt.Sprintf("-%s\r\n", err.Error()))
+}
+
+func EncodeEmptyArray() []byte {
+	return fmt.Appendf(nil, "*0\r\n")
 }
 
 func Encode(value interface{}, isSimpleString bool) []byte {
@@ -24,13 +26,14 @@ func Encode(value interface{}, isSimpleString bool) []byte {
 			return fmt.Appendf(nil, "+%s\r\n", v)
 		}
 		return fmt.Appendf(nil, "$%d\r\n%s\r\n", len(v), v)
-	case int:
-		return fmt.Appendf(nil, ":%d\r\n", v)
-	case int64:
+	case int, int64:
 		return fmt.Appendf(nil, ":%d\r\n", v)
 	case error:
 		return fmt.Appendf(nil, "-%s\r\n", v)
+	case []string:
+		fmt.Println("//////////////////////////// encode string array")
+		return encodeStringArray(value.([]string))
 	default:
-		return EncodeError(fmt.Errorf("unsupported type: %T", v))
+		return encodeError(fmt.Errorf("unsupported type: %T", v))
 	}
 }
