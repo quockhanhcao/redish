@@ -29,6 +29,10 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdSMembers(cmd)
 	case "SISMEMBER":
 		response = cmdSIsmember(cmd)
+	case "CMS.INITBYPROB":
+		response = cmdInitCMS(cmd)
+	case "CMS.INCR":
+		response = cmdIncrCMS(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}
