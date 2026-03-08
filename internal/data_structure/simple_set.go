@@ -22,7 +22,7 @@ func (s *SimpleSet) Add(members ...string) int {
 	return added
 }
 
-func (s *SimpleSet) Remove(members []string) int {
+func (s *SimpleSet) Remove(members ...string) int {
 	removed := 0
 	for _, member := range members {
 		if _, ok := s.dict[member]; !ok {

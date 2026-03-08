@@ -27,6 +27,8 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdSRem(cmd)
 	case "SMEMBERS":
 		response = cmdSMembers(cmd)
+	case "SISMEMBER":
+		response = cmdSIsmember(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

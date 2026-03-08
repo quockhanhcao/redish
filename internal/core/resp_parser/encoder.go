@@ -31,7 +31,6 @@ func Encode(value interface{}, isSimpleString bool) []byte {
 	case error:
 		return fmt.Appendf(nil, "-%s\r\n", v)
 	case []string:
-		fmt.Println("//////////////////////////// encode string array")
 		return encodeStringArray(value.([]string))
 	default:
 		return encodeError(fmt.Errorf("unsupported type: %T", v))
