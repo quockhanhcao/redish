@@ -11,7 +11,7 @@ import (
 	"github.com/quockhanhcao/redish/internal/data_structure"
 )
 
-func cmdInitCMS(cmd *command.Command) []byte {
+func cmdCMSINITBYPROB(cmd *command.Command) []byte {
 	if len(cmd.Args) != 3 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}
@@ -35,11 +35,57 @@ func cmdInitCMS(cmd *command.Command) []byte {
 	return resp_parser.Encode("OK", true)
 }
 
-func cmdIncrCMS(cmd *command.Command) []byte {
+type increaseCommand struct {
+	key   string
+	value uint64
+}
+
+func cmdCMSINCRBY(cmd *command.Command) []byte {
 	if len(cmd.Args) < 3 || len(cmd.Args)%2 == 0 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}
+	sketchName := cmd.Args[0]
+	sketch, ok := core.StoredCountMinSketch[sketchName]
+	if !ok {
+		return resp_parser.Encode("ERR SBS_GET_KEY: key does not exist", false)
+	}
+	capacity := (len(cmd.Args) - 1) / 2
+	commands := make([]increaseCommand, 0, capacity)
+	for idx := 1; idx < len(cmd.Args); idx += 2 {
+		value, err := strconv.ParseUint(cmd.Args[idx+1], 10, 64)
+		if err != nil {
+			return resp_parser.Encode(fmt.Errorf("invalid increment %s", cmd.Args[idx+1]), false)
+		}
+		command := increaseCommand{
+			key:   cmd.Args[idx],
+			value: value,
+		}
+		commands = append(commands, command)
+	}
+	res := make([]string, 0, capacity)
+	for _, command := range commands {
+		count := sketch.Increase(command.key, command.value)
+		res = append(res, fmt.Sprintf("%d", count))
+	}
 
-	// TODO: finish adding value to key
-	return []byte{}
+	return resp_parser.Encode(res, false)
+}
+
+func cmdCMSINFO(cmd *command.Command) []byte {
+	if len(cmd.Args) != 1 {
+		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
+	}
+	sketch, ok := core.StoredCountMinSketch[cmd.Args[0]]
+	if !ok {
+		return resp_parser.Encode("ERR SBS_GET_KEY: key does not exist", false)
+	}
+	// 6 for 3 params in cms: width, depth, and count
+	res := make([]string, 0, 6)
+	res = append(res, "width")
+	res = append(res, fmt.Sprintf("%d", sketch.GetWidth()))
+	res = append(res, "depth")
+	res = append(res, fmt.Sprintf("%d", sketch.GetDepth()))
+	res = append(res, "count")
+	res = append(res, fmt.Sprintf("%d", sketch.GetTotalCount()))
+	return resp_parser.Encode(res, false)
 }

@@ -22,17 +22,19 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 	case "DEL":
 		response = cmdDel(cmd)
 	case "SADD":
-		response = cmdSAdd(cmd)
+		response = cmdSADD(cmd)
 	case "SREM":
-		response = cmdSRem(cmd)
+		response = cmdSREM(cmd)
 	case "SMEMBERS":
-		response = cmdSMembers(cmd)
+		response = cmdSMEMBERS(cmd)
 	case "SISMEMBER":
-		response = cmdSIsmember(cmd)
+		response = cmdSISMEMBER(cmd)
 	case "CMS.INITBYPROB":
-		response = cmdInitCMS(cmd)
-	case "CMS.INCR":
-		response = cmdIncrCMS(cmd)
+		response = cmdCMSINITBYPROB(cmd)
+	case "CMS.INCRBY":
+		response = cmdCMSINCRBY(cmd)
+	case "CMS.INFO":
+		response = cmdCMSINFO(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/quockhanhcao/redish/internal/data_structure"
 )
 
-func cmdSAdd(cmd *command.Command) []byte {
+func cmdSADD(cmd *command.Command) []byte {
 	if len(cmd.Args) <= 1 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}
@@ -23,7 +23,7 @@ func cmdSAdd(cmd *command.Command) []byte {
 	return resp_parser.Encode(addedMem, true)
 }
 
-func cmdSRem(cmd *command.Command) []byte {
+func cmdSREM(cmd *command.Command) []byte {
 	if len(cmd.Args) <= 1 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}
@@ -36,7 +36,7 @@ func cmdSRem(cmd *command.Command) []byte {
 	return resp_parser.Encode(removedMem, true)
 }
 
-func cmdSMembers(cmd *command.Command) []byte {
+func cmdSMEMBERS(cmd *command.Command) []byte {
 	if len(cmd.Args) != 1 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}
@@ -49,7 +49,7 @@ func cmdSMembers(cmd *command.Command) []byte {
 	return resp_parser.Encode(members, false)
 }
 
-func cmdSIsmember(cmd *command.Command) []byte {
+func cmdSISMEMBER(cmd *command.Command) []byte {
 	if len(cmd.Args) != 2 {
 		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
 	}

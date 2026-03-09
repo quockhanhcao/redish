@@ -7,16 +7,18 @@ import (
 )
 
 type CountMinSketch struct {
-	depth  uint32
-	width  uint32
-	matrix [][]uint64
+	depth      uint32
+	width      uint32
+	matrix     [][]uint64
+	totalCount uint64
 }
 
 func NewCountMinSketch(errorRate, probabilityRate float64) *CountMinSketch {
 	depth, width := calcCMSDim(errorRate, probabilityRate)
 	cms := &CountMinSketch{
-		depth: depth,
-		width: width,
+		depth:      depth,
+		width:      width,
+		totalCount: 0,
 	}
 	matrix := make([][]uint64, depth)
 	for i := range depth {
@@ -56,6 +58,23 @@ func (cms *CountMinSketch) Increase(key string, value uint64) uint64 {
 			minCount = cms.matrix[i][pos]
 		}
 	}
-
+	// increase total increment
+	if value > uint64(math.MaxUint64)-cms.totalCount {
+		cms.totalCount = uint64(math.MaxUint64)
+	} else {
+		cms.totalCount += value
+	}
 	return minCount
+}
+
+func (cms *CountMinSketch) GetWidth() uint32 {
+	return cms.width
+}
+
+func (cms *CountMinSketch) GetDepth() uint32 {
+	return cms.depth
+}
+
+func (cms *CountMinSketch) GetTotalCount() uint64 {
+	return cms.totalCount
 }
