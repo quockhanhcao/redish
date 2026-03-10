@@ -35,6 +35,8 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdCMSINCRBY(cmd)
 	case "CMS.INFO":
 		response = cmdCMSINFO(cmd)
+	case "CMS.QUERY":
+		response = cmdCMSQUERY(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

@@ -78,3 +78,18 @@ func (cms *CountMinSketch) GetDepth() uint32 {
 func (cms *CountMinSketch) GetTotalCount() uint64 {
 	return cms.totalCount
 }
+
+func (cms *CountMinSketch) GetMember(key string) uint64 {
+	minCount := uint64(math.MaxUint64)
+	// hash the key to find the position in every row, add to it
+	// return the estimated value for the key
+	for i := range cms.depth {
+		hashedKey := hash(key, i)
+		pos := hashedKey % cms.width
+		// avoid overflow
+		if cms.matrix[i][pos] < minCount {
+			minCount = cms.matrix[i][pos]
+		}
+	}
+	return minCount
+}

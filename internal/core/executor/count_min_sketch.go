@@ -47,7 +47,7 @@ func cmdCMSINCRBY(cmd *command.Command) []byte {
 	sketchName := cmd.Args[0]
 	sketch, ok := core.StoredCountMinSketch[sketchName]
 	if !ok {
-		return resp_parser.Encode("ERR SBS_GET_KEY: key does not exist", false)
+		return resp_parser.Encode("ERR CMS: key does not exist", false)
 	}
 	capacity := (len(cmd.Args) - 1) / 2
 	commands := make([]increaseCommand, 0, capacity)
@@ -77,7 +77,7 @@ func cmdCMSINFO(cmd *command.Command) []byte {
 	}
 	sketch, ok := core.StoredCountMinSketch[cmd.Args[0]]
 	if !ok {
-		return resp_parser.Encode("ERR SBS_GET_KEY: key does not exist", false)
+		return resp_parser.Encode("ERR CMS: key does not exist", false)
 	}
 	// 6 for 3 params in cms: width, depth, and count
 	res := make([]string, 0, 6)
@@ -87,5 +87,20 @@ func cmdCMSINFO(cmd *command.Command) []byte {
 	res = append(res, fmt.Sprintf("%d", sketch.GetDepth()))
 	res = append(res, "count")
 	res = append(res, fmt.Sprintf("%d", sketch.GetTotalCount()))
+	return resp_parser.Encode(res, false)
+}
+
+func cmdCMSQUERY(cmd *command.Command) []byte {
+	if len(cmd.Args) < 1 {
+		return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
+	}
+	sketch, ok := core.StoredCountMinSketch[cmd.Args[0]]
+	if !ok {
+		return resp_parser.Encode("ERR CMS: key does not exist", false)
+	}
+	res := make([]string, 0, len(cmd.Args)-1)
+	for i := 1; i < len(cmd.Args); i++ {
+		res = append(res, fmt.Sprintf("%d", sketch.GetMember(cmd.Args[i])))
+	}
 	return resp_parser.Encode(res, false)
 }
