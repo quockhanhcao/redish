@@ -37,6 +37,8 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdCMSINFO(cmd)
 	case "CMS.QUERY":
 		response = cmdCMSQUERY(cmd)
+	case "BF.ADD":
+		response = cmdBFADD(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}
