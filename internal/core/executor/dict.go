@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
+	// "time"
 
 	"github.com/quockhanhcao/redish/internal/core"
 	"github.com/quockhanhcao/redish/internal/core/command"
@@ -39,41 +39,41 @@ func cmdSet(cmd *command.Command) []byte {
 	return []byte("+OK\r\n")
 }
 
-func cmdGet(cmd *command.Command) []byte {
-	if len(cmd.Args) > 1 {
-		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
-	}
-	val, ok := core.Dictionary.Get(cmd.Args[0])
-	if !ok {
-		return []byte("$-1\r\n")
-	}
-	return resp_parser.Encode(val, false)
-}
+// func cmdGet(cmd *command.Command) []byte {
+// 	if len(cmd.Args) > 1 {
+// 		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
+// 	}
+// 	val, ok := core.Dictionary.Get(cmd.Args[0])
+// 	if !ok {
+// 		return []byte("$-1\r\n")
+// 	}
+// 	return resp_parser.Encode(val, false)
+// }
 
-func cmdTTL(cmd *command.Command) []byte {
-	expireTime, expExist := core.Dictionary.GetExpiry(cmd.Args[0])
-	_, keyExist := core.Dictionary.Get(cmd.Args[0])
-	if !expExist {
-		if keyExist {
-			return resp_parser.Encode(-1, true)
-		}
-		return resp_parser.Encode(-2, true)
-	}
-	nowMs := time.Now().UnixMilli()
-	ttlMs := expireTime - nowMs
-	ttlSec := int64(ttlMs / 1000)
-	if ttlSec < 0 {
-		return resp_parser.Encode(-2, true)
-	}
-	return resp_parser.Encode(ttlSec, true)
-}
+// func cmdTTL(cmd *command.Command) []byte {
+// 	expireTime, expExist := core.Dictionary.GetExpiry(cmd.Args[0])
+// 	_, keyExist := core.Dictionary.Get(cmd.Args[0])
+// 	if !expExist {
+// 		if keyExist {
+// 			return resp_parser.Encode(-1, true)
+// 		}
+// 		return resp_parser.Encode(-2, true)
+// 	}
+// 	nowMs := time.Now().UnixMilli()
+// 	ttlMs := expireTime - nowMs
+// 	ttlSec := int64(ttlMs / 1000)
+// 	if ttlSec < 0 {
+// 		return resp_parser.Encode(-2, true)
+// 	}
+// 	return resp_parser.Encode(ttlSec, true)
+// }
 
 func cmdExpire(cmd *command.Command) []byte {
 	if len(cmd.Args) != 2 {
 		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
 	}
-	_, ok := core.Dictionary.Get(cmd.Args[0])
-	if !ok {
+	obj := core.Dictionary.Get(cmd.Args[0])
+	if obj == nil {
 		return resp_parser.Encode(0, true)
 	}
 	expTime, err := strconv.Atoi(cmd.Args[1])
@@ -87,8 +87,8 @@ func cmdExpire(cmd *command.Command) []byte {
 func cmdDel(cmd *command.Command) []byte {
 	deleted := 0
 	for _, key := range cmd.Args {
-		_, ok := core.Dictionary.Get(key)
-		if ok {
+		obj := core.Dictionary.Get(key)
+		if obj != nil {
 			core.Dictionary.Del(key)
 			deleted++
 		}

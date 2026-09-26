@@ -13,10 +13,10 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdPing(cmd)
 	case "SET":
 		response = cmdSet(cmd)
-	case "GET":
-		response = cmdGet(cmd)
-	case "TTL":
-		response = cmdTTL(cmd)
+	// case "GET":
+	// 	response = cmdGet(cmd)
+	// case "TTL":
+	// 	response = cmdTTL(cmd)
 	case "EXPIRE":
 		response = cmdExpire(cmd)
 	case "DEL":
@@ -39,6 +39,10 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdCMSQUERY(cmd)
 	case "BF.ADD":
 		response = cmdBFADD(cmd)
+	case "INFO":
+		response = cmdINFO()
+	case "CONFIG":
+		response = cmdCONFIG(cmd)
 	default:
 		response = []byte("-CMD NOT FOUND\r\n")
 	}

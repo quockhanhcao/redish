@@ -2,11 +2,14 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"io"
 	"log"
 	"net"
+
 	// "os"
 
+	"github.com/quockhanhcao/redish/internal/core/config"
 	"github.com/quockhanhcao/redish/internal/core/server"
 )
 
@@ -83,7 +86,17 @@ func main() {
 	// 	}
 	// 	threadPool.AddJob(Job{conn})
 	// }
-	server.RunIoMultiplexingServer()
+
+	dir := flag.String("dir", ".", "Directory path")
+	filename := flag.String("dbfilename", "", "RBD file name")
+
+	flag.Parse()
+
+	cfg := config.PersistenceConfiguration{
+		Directory:  *dir,
+		DBFileName: *filename,
+	}
+	server.RunIoMultiplexingServer(cfg)
 }
 
 func handleConnection(conn net.Conn) {

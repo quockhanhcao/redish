@@ -4,8 +4,13 @@ import (
 	"time"
 )
 
+type Obj struct {
+	Value      interface{}
+	AccessTime uint32
+}
+
 type Dictionary struct {
-	dataDict           map[string]string
+	dataDict           map[string]*Obj
 	expireKeyDictStore map[string]int64
 }
 
@@ -13,33 +18,41 @@ func (d *Dictionary) GetExpireKeyDict() map[string]int64 {
 	return d.expireKeyDictStore
 }
 
-func (d *Dictionary) GetDataDict() map[string]string {
+func (d *Dictionary) GetDataDict() map[string]*Obj {
 	return d.dataDict
 }
 
 func InitSet() *Dictionary {
 	dictionary := &Dictionary{
-		dataDict:           make(map[string]string),
+		dataDict:           make(map[string]*Obj),
 		expireKeyDictStore: make(map[string]int64),
 	}
 	return dictionary
 }
 
 func (d *Dictionary) Set(key, value string, exp int64) {
-	d.dataDict[key] = value
+	_, exist := d.dataDict[key]
+	if !exist {
+		Stats.AddKey()
+	}
+	d.dataDict[key] = &Obj{
+		Value: value,
+	}
 	if exp != -1 {
 		d.expireKeyDictStore[key] = time.Now().UnixMilli() + exp*1000
 	}
 }
 
-func (d *Dictionary) Get(key string) (string, bool) {
-	expireTime, ok := d.expireKeyDictStore[key]
-	if ok && time.Now().UnixMilli() > expireTime {
-		d.Del(key)
-		return "", false
-	}
+func (d *Dictionary) Get(key string) *Obj {
 	val, ok := d.dataDict[key]
-	return val, ok
+	if ok {
+		expireTime, ok := d.expireKeyDictStore[key]
+		if ok && time.Now().UnixMilli() > expireTime {
+			d.Del(key)
+			return nil
+		}
+	}
+	return val
 }
 
 func (d *Dictionary) GetExpiry(key string) (int64, bool) {
@@ -52,6 +65,9 @@ func (d *Dictionary) SetExpiry(key string, exp int64) {
 }
 
 func (d *Dictionary) Del(key string) {
-	delete(d.dataDict, key)
-	delete(d.expireKeyDictStore, key)
+	if _, exist := d.dataDict[key]; exist {
+		delete(d.dataDict, key)
+		delete(d.expireKeyDictStore, key)
+		Stats.RemoveKey()
+	}
 }

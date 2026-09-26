@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	// "fmt"
 	"io"
 	"log"
 	"net"
@@ -18,7 +19,7 @@ import (
 	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 )
 
-func RunIoMultiplexingServer() {
+func RunIoMultiplexingServer(cfg config.PersistenceConfiguration) {
 	listener, err := net.Listen(config.PROTOCOL, config.PORT)
 	if err != nil {
 		log.Println("failed to bind to port 3000")
@@ -26,6 +27,9 @@ func RunIoMultiplexingServer() {
 	}
 	defer listener.Close()
 	log.Println("server is listening on port 3000")
+
+	// persistence configuration set up
+	config.Persistence = cfg
 
 	tcpListener, ok := listener.(*net.TCPListener)
 	if !ok {
@@ -49,7 +53,7 @@ func RunIoMultiplexingServer() {
 
 	err = ioMultiplexer.Monitor(io_multiplexing.Event{
 		Fd: listenerFD,
-		Op:      io_multiplexing.OperationRead})
+		Op: io_multiplexing.OperationRead})
 	if err != nil {
 		log.Println("failed to monitor listener: ", err.Error())
 		return
@@ -80,7 +84,7 @@ func RunIoMultiplexingServer() {
 				// ask epoll to monitor this connection
 				if err = ioMultiplexer.Monitor(io_multiplexing.Event{
 					Fd: connFd,
-					Op:      io_multiplexing.OperationRead,
+					Op: io_multiplexing.OperationRead,
 				}); err != nil {
 					log.Fatal(err)
 				}
