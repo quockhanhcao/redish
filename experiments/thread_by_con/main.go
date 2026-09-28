@@ -1,4 +1,4 @@
-package threadbycon
+package main
 
 import (
 	"errors"
@@ -32,10 +32,10 @@ func handleConnection(conn net.Conn) {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-            if errors.Is(err, io.EOF) {
-                fmt.Println("Connection closed by client")
-                return
-            }
+			if errors.Is(err, io.EOF) {
+				fmt.Println("Connection closed by client")
+				return
+			}
 			fmt.Println("Error reading from connection: ", err.Error())
 			return
 		}

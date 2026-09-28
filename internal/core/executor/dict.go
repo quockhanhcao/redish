@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	// "time"
+	"time"
 
 	"github.com/quockhanhcao/redish/internal/core"
 	"github.com/quockhanhcao/redish/internal/core/command"
@@ -19,7 +19,7 @@ func cmdPing(cmd *command.Command) []byte {
 	if len(cmd.Args) == 1 {
 		return resp_parser.Encode(cmd.Args[0], false)
 	}
-	return resp_parser.Encode(errors.New("wrong number of arguments for command"), false)
+	return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
 }
 
 // set abc ex 5
@@ -39,34 +39,34 @@ func cmdSet(cmd *command.Command) []byte {
 	return []byte("+OK\r\n")
 }
 
-// func cmdGet(cmd *command.Command) []byte {
-// 	if len(cmd.Args) > 1 {
-// 		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
-// 	}
-// 	val, ok := core.Dictionary.Get(cmd.Args[0])
-// 	if !ok {
-// 		return []byte("$-1\r\n")
-// 	}
-// 	return resp_parser.Encode(val, false)
-// }
+func cmdGet(cmd *command.Command) []byte {
+	if len(cmd.Args) != 1 {
+		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
+	}
+	obj := core.Dictionary.Get(cmd.Args[0])
+	if obj == nil {
+		return []byte("$-1\r\n")
+	}
+	return resp_parser.Encode(obj.Value, false)
+}
 
-// func cmdTTL(cmd *command.Command) []byte {
-// 	expireTime, expExist := core.Dictionary.GetExpiry(cmd.Args[0])
-// 	_, keyExist := core.Dictionary.Get(cmd.Args[0])
-// 	if !expExist {
-// 		if keyExist {
-// 			return resp_parser.Encode(-1, true)
-// 		}
-// 		return resp_parser.Encode(-2, true)
-// 	}
-// 	nowMs := time.Now().UnixMilli()
-// 	ttlMs := expireTime - nowMs
-// 	ttlSec := int64(ttlMs / 1000)
-// 	if ttlSec < 0 {
-// 		return resp_parser.Encode(-2, true)
-// 	}
-// 	return resp_parser.Encode(ttlSec, true)
-// }
+func cmdTTL(cmd *command.Command) []byte {
+	if len(cmd.Args) != 1 {
+		return resp_parser.Encode(errors.New("ERR wrong number of arguments for command"), false)
+	}
+	obj := core.Dictionary.Get(cmd.Args[0])
+	if obj == nil {
+		return resp_parser.Encode(-2, true)
+	}
+	expireTime, expExist := core.Dictionary.GetExpiry(cmd.Args[0])
+	if !expExist {
+		return resp_parser.Encode(-1, true)
+	}
+	nowMs := time.Now().UnixMilli()
+	ttlMs := expireTime - nowMs
+	ttlSec := ttlMs / 1000
+	return resp_parser.Encode(ttlSec, true)
+}
 
 func cmdExpire(cmd *command.Command) []byte {
 	if len(cmd.Args) != 2 {

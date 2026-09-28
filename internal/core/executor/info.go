@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	// "github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/resp_parser"
 	"github.com/quockhanhcao/redish/internal/data_structure"
 )

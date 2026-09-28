@@ -1,4 +1,4 @@
-package threadpool
+package main
 
 import (
 	"errors"
@@ -38,6 +38,20 @@ func NewPool(numWorkers int) *Pool {
 
 func (p *Pool) AddJob(job Job) {
 	p.jobQueue <- job
+}
+
+func (p *Pool) Start() {
+	for i := 0; i < len(p.workers); i++ {
+		p.workers[i] = NewWorker(i+1, p.jobQueue)
+		p.workers[i].Start()
+	}
+}
+
+func NewWorker(id int, jobQueue chan Job) *Worker {
+	return &Worker{
+		id:       id,
+		jobQueue: jobQueue,
+	}
 }
 
 func (w *Worker) Start() {
@@ -82,6 +96,6 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 		fmt.Println("Received data: ", string(buf[:n]))
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n+PONG\r\n"))
+		conn.Write([]byte("+PONG\r\n"))
 	}
 }

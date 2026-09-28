@@ -2,7 +2,6 @@ package executor
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/quockhanhcao/redish/internal/core/command"
 	"github.com/quockhanhcao/redish/internal/core/config"
@@ -10,7 +9,6 @@ import (
 )
 
 func cmdCONFIG(cmd *command.Command) []byte {
-	fmt.Printf("command: %+v\n", cmd)
 	if len(cmd.Args) != 2 {
 		return resp_parser.Encode(errors.New("syntax error"), false)
 	}

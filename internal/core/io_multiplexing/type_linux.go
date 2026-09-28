@@ -19,7 +19,7 @@ func toGenericEvent(event syscall.EpollEvent) Event {
 		operation = OperationWrite
 	}
 	return Event{
-		Fd:        int(event.Fd),
+		Fd: int(event.Fd),
 		Op: operation,
 	}
 }

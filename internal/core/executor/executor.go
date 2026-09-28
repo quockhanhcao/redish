@@ -13,10 +13,10 @@ func ExecuteCommand(cmd *command.Command, fd int) error {
 		response = cmdPing(cmd)
 	case "SET":
 		response = cmdSet(cmd)
-	// case "GET":
-	// 	response = cmdGet(cmd)
-	// case "TTL":
-	// 	response = cmdTTL(cmd)
+	case "GET":
+		response = cmdGet(cmd)
+	case "TTL":
+		response = cmdTTL(cmd)
 	case "EXPIRE":
 		response = cmdExpire(cmd)
 	case "DEL":
