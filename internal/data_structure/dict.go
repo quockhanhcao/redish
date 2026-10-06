@@ -22,7 +22,7 @@ func (d *Dictionary) GetDataDict() map[string]*Obj {
 	return d.dataDict
 }
 
-func InitSet() *Dictionary {
+func InitDictionary() *Dictionary {
 	dictionary := &Dictionary{
 		dataDict:           make(map[string]*Obj),
 		expireKeyDictStore: make(map[string]int64),
@@ -30,7 +30,7 @@ func InitSet() *Dictionary {
 	return dictionary
 }
 
-func (d *Dictionary) Set(key, value string, exp int64) {
+func (d *Dictionary) Set(key string, value interface{}, exp int64) {
 	_, exist := d.dataDict[key]
 	if !exist {
 		Stats.AddKey()

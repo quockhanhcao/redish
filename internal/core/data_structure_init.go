@@ -8,7 +8,7 @@ var StoredCountMinSketch map[string]*data_structure.CountMinSketch
 var StoredBloomFilter map[string]*data_structure.Bloom
 
 func init() {
-	Dictionary = data_structure.InitSet()
+	Dictionary = data_structure.InitDictionary()
 	StoredSet = make(map[string]*data_structure.SimpleSet)
 	StoredCountMinSketch = make(map[string]*data_structure.CountMinSketch)
 }
