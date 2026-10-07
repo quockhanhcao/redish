@@ -1,6 +1,7 @@
 package data_structure
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/spaolacci/murmur3"
@@ -13,8 +14,22 @@ type CountMinSketch struct {
 	totalCount uint64
 }
 
-func NewCountMinSketch(errorRate, probabilityRate float64) *CountMinSketch {
-	depth, width := calcCMSDim(errorRate, probabilityRate)
+// NewCountMinSketch builds a sketch whose estimates overshoot the true count by
+// at most errorRate of the total ever added, for all but probabilityRate of the
+// keys. Both rates must be between 0 and 1, exclusive.
+//
+// The bounds are written as !(x > 0 && x < 1) rather than x <= 0 || x >= 1 so
+// that NaN is rejected too: every comparison against NaN is false, so the
+// negated form catches it while the direct form would let it through and leave
+// calcCMSDim converting NaN to a uint32.
+func NewCountMinSketch(errorRate, probabilityRate float64) (*CountMinSketch, error) {
+	if !(errorRate > 0 && errorRate < 1) {
+		return nil, fmt.Errorf("error rate must be between 0 and 1, got %v", errorRate)
+	}
+	if !(probabilityRate > 0 && probabilityRate < 1) {
+		return nil, fmt.Errorf("probability rate must be between 0 and 1, got %v", probabilityRate)
+	}
+	width, depth := calcCMSDim(errorRate, probabilityRate)
 	cms := &CountMinSketch{
 		depth:      depth,
 		width:      width,
@@ -25,7 +40,7 @@ func NewCountMinSketch(errorRate, probabilityRate float64) *CountMinSketch {
 		matrix[i] = make([]uint64, width)
 	}
 	cms.matrix = matrix
-	return cms
+	return cms, nil
 }
 
 func hash(key string, seed uint32) uint32 {

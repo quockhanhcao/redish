@@ -29,7 +29,10 @@ func cmdCMSINITBYPROB(cmd *command.Command) []byte {
 	if err != nil || probabilityRate <= 0 || probabilityRate >= 1 {
 		return resp_parser.Encode(fmt.Errorf("invalid probability: %s (must be between 0 and 1)", cmd.Args[2]), false)
 	}
-	newCMS := data_structure.NewCountMinSketch(errorRate, probabilityRate)
+	newCMS, err := data_structure.NewCountMinSketch(errorRate, probabilityRate)
+	if err != nil {
+		return resp_parser.Encode(err, false)
+	}
 	core.StoredCountMinSketch[cmsName] = newCMS
 
 	return resp_parser.Encode("OK", true)
